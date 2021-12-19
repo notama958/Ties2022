@@ -68,13 +68,6 @@ class MotorThread(threading.Thread):
         GPIO.output(Motor_B_EN, GPIO.LOW)
 
     def run(self):
-        print("Motor Thread")
-        # while 1:
-        #     pass
-        # while self.__flag.is_set():
-        #     print(self.currentE())
-        #     time.sleep(1)
-        #     # pass
         while 1:
             self.__flag.wait()
             self.trackObj()
@@ -85,19 +78,6 @@ class MotorThread(threading.Thread):
 
     def currentE(self):
         return self.errorX
-
-    # def trackObj(self):
-    #     # while abs(self.errorX) > 5:
-    #     # while self.__flag.is_set():
-    #     #     # print(self.currentE())
-    #     #     # time.sleep(1)
-    #     while 1:
-    #         if self.errorX > 0:
-    #             self.turnRight()
-    #         elif self.errorX < 0:
-    #             self.turnLeft()
-    #         time.sleep(1.5)
-    #         pass
 
     # Reuse from Adeept
     # Motor 2 positive and negative rotation
@@ -177,7 +157,6 @@ if __name__ == '__main__':
         motors = MotorThread()
         motors.start()
         motors.setup()
-        # motors.move(speed_set, 'forward', 'no', 0.8)
         time.sleep(1.3)
         motors.motorStop()
         motors.destroy()

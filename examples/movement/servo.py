@@ -1,7 +1,6 @@
 # Servos is used for ARM control
 from __future__ import division
 import time
-import sys
 from adafruit_motor import servo
 from adafruit_pca9685 import PCA9685
 import threading
@@ -20,13 +19,6 @@ pca.frequency = 50
 
 class ServoCtrl(threading.Thread):
     """Used servos 11,12,13,14,15"""
-    global inThread
-    global servoThreads
-    global nowPos
-    global lastPos
-    global minPos
-    global bufferPos
-    global maxPos
     maxPulse = 2400
     minPulse = 500
     angleRange = 180

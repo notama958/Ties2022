@@ -18,6 +18,7 @@ class CameraEvent(object):
     """An Event-like class that signals all active clients when a new frame is
     available.
     """
+
     def __init__(self):
         self.events = {}
 
@@ -117,7 +118,7 @@ class Camera(BaseCamera):
 
             stream = io.BytesIO()
             for _ in camera.capture_continuous(stream, 'jpeg',
-                                                 use_video_port=True):
+                                               use_video_port=True):
                 # return current frame
                 stream.seek(0)
                 yield stream.read()
@@ -125,12 +126,3 @@ class Camera(BaseCamera):
                 # reset stream for next frame
                 stream.seek(0)
                 stream.truncate()
-
-if __name__ == "__main__":
-    import numpy as np
-    import cv2
-    raw_image = next(Camera.frames())
-    nparr = np.frombuffer(raw_image, np.uint8)
-    img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    cv2.imwrite("tmp.jpg", img_np)
-    print("saved")

@@ -13,11 +13,11 @@ pip3 install -r requirements.txt
 Our main functional parts lie in different modules and are strictly splitted. Coupling to some degree is totally ok.
 
 src
-├── main.py     # Our main file which will be our main end-point for a car.
-├── movement    # Module for all car movements. Ride, turn, use arm (high dev priority)
-├── painting    # Module for painting the road marking (should be in movement? Low dev priority)
-├── sound       # Module for making noize with the speaker (low dev priority)
-└── vision		# Module for image processing (high research priority)
+├── main.py # Main end-point for a car
+├── movement # High dev priority
+├── painting # Low dev priority
+├── sound # low dev priority    
+└── vision # high research priority
 
 ### Tests and examples
 
