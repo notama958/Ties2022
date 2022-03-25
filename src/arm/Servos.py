@@ -10,8 +10,10 @@ import sys
 import os
 curr_folder = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(curr_folder)
-# print(curr_folder)
+
 from ServoThread import ServoThreadObject
+
+# print(curr_folder)
 
 i2c = busio.I2C(SCL, SDA)
 
@@ -89,6 +91,7 @@ class ServoCtrl():
             self.servos[i] = ServoThreadObject(servoObject=Servo)
             self.servos[i].start()
         # print(self.servos)
+        self.moveInit()
 
     def moveInit(self):
         """move all servos to center"""
@@ -111,11 +114,11 @@ class ServoCtrl():
     def grab(self):
         """grab object in front of"""
         try:
-            # self.grabing_free = False
+
             self.moveAngle(0, 0)
             self.moveAngle(13, 10)
             self.moveAngle(12, 40)
-            
+
             time.sleep(1)
             self.moveAngle(0,  135)
             time.sleep(1.5)
@@ -123,23 +126,46 @@ class ServoCtrl():
             # rise up the hand
             self.moveAngle(13, 60)
             self.moveAngle(12, 40)
-            return True
+            self.grabing_free = False
 
         except Exception:
-            return False
+            self.grabing_free = True
 
-            # raise('Thread failed')
+        return self.grabing_free
+
+        # raise('Thread failed')
+    def test(self):
+        try:
+            """"""
+            self.moveAngle(0, 0)
+            self.moveAngle(13, 10)
+            self.moveAngle(12, 40)
+
+            time.sleep(0.5)
+            self.moveAngle(0,  135)
+            time.sleep(0.5)
+            print("rise up the hand")
+            # rise up the hand
+            self.moveAngle(13, 90)
+            self.moveAngle(12, 0)
+            time.sleep(0.20)
+            self.moveAngle(0,  0)
+        except Exception:
+            """"""
 
     def release(self):
         """release object in front of"""
         try:
-            self.moveAngle(1,90)
+            self.moveAngle(13, 60)
+            self.moveAngle(12, 40)
+            self.moveAngle(1, 90)
             self.moveAngle(0, self.minPos[0])
             time.sleep(3)
             self.scMode = 'init'
-            return True
+            self.grabing_free = True
         except Exception:
-            return False
+            self.grabing_free = False
+        return self.grabing_free
 
     def killServoThread(self, ID):
         self.servos[ID].join()
@@ -182,7 +208,9 @@ if __name__ == "__main__":
 
         sc.moveInit()
         print("grab")
-        sc.grab()
+        # sc.grab()
+        sc.test()
+        # sc.moveInit()
         time.sleep(5)
         print("release")
         sc.release()
