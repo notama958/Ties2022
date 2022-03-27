@@ -114,18 +114,16 @@ class ServoCtrl():
     def grab(self):
         """grab object in front of"""
         try:
-
             self.moveAngle(0, 0)
-            self.moveAngle(13, 10)
             self.moveAngle(12, 40)
-
+            self.moveAngle(13, 10)
             time.sleep(1)
             self.moveAngle(0,  135)
             time.sleep(1.5)
             print("rise up the hand")
             # rise up the hand
-            self.moveAngle(13, 60)
-            self.moveAngle(12, 40)
+            self.moveAngle(13, 90)
+            self.moveAngle(12, 20)
             self.grabing_free = False
 
         except Exception:
@@ -137,19 +135,9 @@ class ServoCtrl():
     def test(self):
         try:
             """"""
-            self.moveAngle(0, 0)
-            self.moveAngle(13, 10)
-            self.moveAngle(12, 40)
-
-            time.sleep(0.5)
-            self.moveAngle(0,  135)
-            time.sleep(0.5)
-            print("rise up the hand")
-            # rise up the hand
-            self.moveAngle(13, 90)
-            self.moveAngle(12, 0)
-            time.sleep(0.20)
-            self.moveAngle(0,  0)
+            sc.grab()
+            time.sleep(0.3)
+            sc.release()
         except Exception:
             """"""
 
@@ -157,7 +145,7 @@ class ServoCtrl():
         """release object in front of"""
         try:
             self.moveAngle(13, 60)
-            self.moveAngle(12, 40)
+            self.moveAngle(12, 20)
             self.moveAngle(1, 90)
             self.moveAngle(0, self.minPos[0])
             time.sleep(3)
@@ -205,15 +193,18 @@ if __name__ == "__main__":
     try:
         """"""
         # arr = [None]*16
-
-        sc.moveInit()
-        print("grab")
-        # sc.grab()
-        sc.test()
-        # sc.moveInit()
-        time.sleep(5)
-        print("release")
-        sc.release()
+        while 1:
+          sc.moveInit()
+          #print("grab")
+          sc.grab()
+          time.sleep(5)
+          #sc.test()
+          # sc.moveInit()
+          #time.sleep(5)
+          print("release")
+          sc.release()
+          time.sleep(2)
+        
     except KeyboardInterrupt:
         """"""
         sc.destroy()

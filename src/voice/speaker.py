@@ -28,13 +28,13 @@ class Speaker(threading.Thread):
     def killPlaybackThread(self):
         ''''''
 
-    def back(self, file="./mp3/back.mp3"):
+    def back(self, file="./voice/mp3/back.mp3"):
         pygame.mixer.music.load(file)
         pygame.mixer.music.play()
         while pygame.mixer.music.get_busy() == True:
             continue
 
-    def forward(self, file="./mp3/forward.mp3"):
+    def forward(self, file="./voice/mp3/forward.mp3"):
         pygame.mixer.music.load(file)
         pygame.mixer.music.play()
         while pygame.mixer.music.get_busy() == True:

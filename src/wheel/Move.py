@@ -79,23 +79,6 @@ class MotorThread(threading.Thread):
     def updateE(self, e):
         self.errorX = e
 
-    # def currentE(self):
-    #     return self.errorX
-
-    # def trackObj(self):
-    #     # while abs(self.errorX) > 5:
-    #     # while self.__flag.is_set():
-    #     #     # print(self.currentE())
-    #     #     # time.sleep(1)
-    #     while 1:
-    #         if self.errorX > 0:
-    #             self.turnRight()
-    #         elif self.errorX < 0:
-    #             self.turnLeft()
-    #         time.sleep(1.5)
-    #         pass
-
-    # Reuse from Adeept
     # Motor 2 positive and negative rotation
     def motor_left(self, status, direction, speed):
         if status == 0:  # stop
@@ -114,7 +97,6 @@ class MotorThread(threading.Thread):
                 pwm_B.start(0)
                 pwm_B.ChangeDutyCycle(speed)
 
-    # Reuse from Adeept
     # Motor 1 positive and negative rotation
     def motor_right(self, status, direction, speed):
         if status == 0:  # stop
@@ -153,14 +135,14 @@ class MotorThread(threading.Thread):
         time.sleep(0.2)
 
     def turnRight(self, speed=80):
-        self.motor_left(1, left_backward, speed)
-        self.motor_right(1, right_backward, speed-20)
-        # time.sleep(0.1)
+        self.motor_left(1, left_backward, speed-10)
+        self.motor_right(1, right_backward, speed-10)
+        time.sleep(0.7)
 
     def turnLeft(self, speed=80):
-        self.motor_left(1, left_forward, speed-20)
-        self.motor_right(1, right_forward, speed)
-        # time.sleep(0.1)
+        self.motor_left(1, left_forward, speed-10)
+        self.motor_right(1, right_forward, speed-10)
+        time.sleep(0.7)
 
     def destroy(self):
         self.motorStop()
@@ -180,10 +162,10 @@ if __name__ == '__main__':
         # motors.moveBackward(100)
         # time.sleep(1)
         print("move left")
-        motors.turnLeft(90)
+        motors.turnLeft(speed_set)
         time.sleep(1)
         print("move ")
-        motors.turnRight(90)
+        motors.turnRight(speed_set)
 
         time.sleep(1.3)
         motors.motorStop()

@@ -11,8 +11,7 @@ import numpy as np
 import threading
 from vision import lidar_litev3_thread
 import time
-import speaker
-
+from voice import speaker
 from utils import stack
 # from stack import ColorStack
 # Servo
@@ -322,15 +321,6 @@ class CVThread(threading.Thread):
                     self.shape['circle'] = False
                     self.areas['circle']['area'] = 0
                     self.areas['circle']['approx'] = None
-
-            # else:
-            #     print("GHAHAHAHAHAH")
-            #     self.shape['box'] = False
-            #     self.areas['box']['area'] = 0
-            #     self.areas['box']['approx'] = None
-            #     self.shape['circle'] = False
-            #     self.areas['circle']['area'] = 0
-            #     self.areas['circle']['approx'] = None
         # print(self.shape)
         if not self.shape.get("circle") and self.shape.get("box"):
             """find container"""
@@ -430,8 +420,10 @@ class CVThread(threading.Thread):
         self.motors.updateE(calCenter)  # keep track of the error
         if abs(calCenter) > 100:
             if calCenter < 0:
+                # print("turn right")
                 self.motors.turnRight(100)
             elif calCenter > 0:
+                # print("turn left")
                 self.motors.turnLeft(100)
         else:
             self.motors.motorStop()
