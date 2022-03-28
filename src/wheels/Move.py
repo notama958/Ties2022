@@ -6,9 +6,16 @@
 # Author      : William
 # Modified    : yen tran
 # Date        : 2019/07/24
+from navigation import compass_smbus_cmps14
 import threading
 import time
 import RPi.GPIO as GPIO
+import os
+import sys
+
+curr_folder = os.path.dirname(os.getcwd())
+sys.path.append(curr_folder)
+
 
 # motor_EN_A: Pin7  |  motor_EN_B: Pin11
 # motor_A:  Pin8,Pin10    |  motor_B: Pin13,Pin12
@@ -35,11 +42,17 @@ pwm_B = 0
 
 class MotorThread(threading.Thread):
     errorX = 0
+    currentDir = 0
+    compass_lock = True  # initially we dont need to read compass
+    compass = compass_smbus_cmps14.Compass(4)
+    compass.start()
 
     def __init__(self, *args, **kwargs):
         super(MotorThread, self).__init__(*args, *kwargs)
+        # init compass
         self.__flag = threading.Event()
         self.__flag.clear()
+        self.__flag.set()
         self.setup()
 
     def setup(self):  # Motor initialization
@@ -73,8 +86,8 @@ class MotorThread(threading.Thread):
         print("Motor Thread")
         while 1:
             self.__flag.wait()
-            self.trackObj()
-            pass
+            if not self.compass_lock:
+                self.currentDir = self.compass.compass_value
 
     def updateE(self, e):
         self.errorX = e
@@ -144,6 +157,31 @@ class MotorThread(threading.Thread):
         self.motor_right(1, right_forward, speed-10)
         time.sleep(0.7)
 
+    def rotate(self, angle):
+        """rotate to specific angle"""
+        # read compass value
+        self.compass_lock = False
+        # set lock for while loop
+        time.sleep(0.5)
+        dest = angle
+        while 1:
+            """"""
+            if abs(self.currentDir-dest) <= 5:
+                print("STOP")
+                self.motorStop()
+                break
+            if self.currentDir > dest:
+                self.turnLeft()
+            elif self.currentDir < dest:
+                self.turnRight()
+            time.sleep(0.3)
+            print(self.currentDir)
+
+        # pause reading compass
+        self.pause()
+        print("Im out")
+        self.motorStop()
+
     def destroy(self):
         self.motorStop()
         GPIO.cleanup()             # Release resource
@@ -155,20 +193,27 @@ if __name__ == '__main__':
         motors = MotorThread()
         motors.start()
         motors.setup()
+        print("current direction")
+        print(motors.currentDir)
+        motors.rotate(0)
+        # print("dest ",motors.currentDir)
+        # motors.turnLeft()
+        # time.sleep(0.3)
+        # motors.motorStop()
         # print("move foreward")
         # motors.moveForward(100)
         # time.sleep(1)
         # print("move backward")
         # motors.moveBackward(100)
         # time.sleep(1)
-        print("move left")
-        motors.turnLeft(speed_set)
-        time.sleep(1)
-        print("move ")
-        motors.turnRight(speed_set)
+        # print("move left")
+        # motors.turnLeft(speed_set)
+        # time.sleep(1)
+        # print("move ")
+        # motors.turnRight(speed_set)
 
-        time.sleep(1.3)
-        motors.motorStop()
-        motors.destroy()
+        # time.sleep(1.3)
+        # motors.motorStop()
+        # motors.destroy()
     except KeyboardInterrupt:
         motors.destroy()

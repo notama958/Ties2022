@@ -1,4 +1,5 @@
 # Servos is used for ARM control
+
 import busio
 from board import SCL, SDA
 import threading
@@ -10,7 +11,6 @@ import sys
 import os
 curr_folder = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(curr_folder)
-
 from ServoThread import ServoThreadObject
 
 # print(curr_folder)
@@ -37,7 +37,7 @@ def parse():
     return new_arr
 
 
-class ServoCtrl():
+class ServoCtrl(threading.Thread):
     """Used servos 11,12,13,14,15"""
     global inThread
     global servoThreads
@@ -70,6 +70,10 @@ class ServoCtrl():
         # get list of active servo ids
         self.activeServos = parse()
         self.initConfig()  # instantiate all Servo object for all 16 servo pins
+        super(ServoCtrl, self).__init__(*args, **kwargs)
+        self.__flag = threading.Event()
+        self.__flag.clear()
+        self.__flag.set()
 
     def pause(self):
         print('......................pause..........................')
@@ -190,21 +194,22 @@ def getServoPins(argv):
 if __name__ == "__main__":
     # sc = ServoCtrl()
     sc = ServoCtrl()
+    sc.start()
     try:
         """"""
         # arr = [None]*16
         while 1:
-          sc.moveInit()
-          #print("grab")
-          sc.grab()
-          time.sleep(5)
-          #sc.test()
-          # sc.moveInit()
-          #time.sleep(5)
-          print("release")
-          sc.release()
-          time.sleep(2)
-        
+            sc.moveInit()
+            # print("grab")
+            sc.grab()
+            time.sleep(5)
+            # sc.test()
+            # sc.moveInit()
+            # time.sleep(5)
+            print("release")
+            sc.release()
+            time.sleep(2)
+
     except KeyboardInterrupt:
         """"""
         sc.destroy()

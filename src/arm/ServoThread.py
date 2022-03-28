@@ -49,9 +49,10 @@ class ServoThreadObject(threading.Thread):
         self.__flag.clear()
 
     def run(self):
-        while True:
-            """"""
-            # self.moveAngle()
+        """"""
+        # while True:
+        #     """"""
+        # self.moveAngle()
 
 
 if __name__ == "__main__":

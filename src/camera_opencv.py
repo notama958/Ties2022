@@ -1,10 +1,9 @@
 # upgrade version of color detection
 # use for rastank
 # author: yen tran
-# license: Adeept
 
 import os
-from tkinter import W
+import imutils
 import cv2
 from base_camera import BaseCamera
 import numpy as np
@@ -13,11 +12,12 @@ from vision import lidar_litev3_thread
 import time
 from voice import speaker
 from utils import stack
+from pyzbar import pyzbar
 # from stack import ColorStack
 # Servo
 from arm import Servos
 # Motors
-from wheel import Move
+from wheels import Move
 # Canny thresholds
 CANNY_T1 = 150
 CANNY_T2 = 150
@@ -103,9 +103,6 @@ except FileNotFoundError:
     print("not found contour init file", end=" ")
     print("you should run utils/thresholds.py before running this file")
     pass
-print(CANNY_T1)
-print(CANNY_T2)
-print(AREA)
 
 
 class Camera(BaseCamera):
@@ -134,7 +131,6 @@ class Camera(BaseCamera):
             else:
                 cvt.mode(img)
                 cvt.resume()
-
             # mark the object
             img = cvt.elementDraw(img)
             # encode as a jpeg image and return it
@@ -200,17 +196,12 @@ class CVThread(threading.Thread):
         self.CVThreading = 0
         self.findColorDetection = 0
         self.findcontainerDetection = 0
-        self.mov_x = None
-        self.mov_y = None
-        self.mov_w = None
-        self.mov_h = None
         # newly added
         self.color_name = colors[self.color_selected]  # save the color name
         self.stack = stack.ColorStack()
         self.stack.push(self.color_name)
         #################
-        self.scGear.moveInit()
-        # self.scGear.start()
+        self.scGear.start()
         self.motors.start()
         self.lidar.start()
         self.myVoice.start()
@@ -230,43 +221,45 @@ class CVThread(threading.Thread):
 
     def mode(self, imgInput):
         self.imgCV = imgInput
-        # self.resume()
+        self.resume()
 
-    def findColorVer2(self, frame_image):
-        # image smoothing
-        imgblur = cv2.GaussianBlur(frame_image, (7, 7), 1)
-        # to hsv
-        imgHSV = cv2.cvtColor(imgblur, cv2.COLOR_BGR2HSV)
-        # apply color threshold
-        hsv = cv2.inRange(
-            imgHSV, color_dict.get(self.color_name).get('LOW'), color_dict.get(self.color_name).get('HIGH'))
+    # def findColor(self, frame_image):
+    #     """find color target"""
+    #     hsv = cv2.cvtColor(frame_image, cv2.COLOR_BGR2HSV)
+    #     mask = cv2.inRange(
+    #         hsv, color_dict.get(self.color_name).get('LOW'), color_dict.get(self.color_name).get('HIGH'))  # 1
+    #     mask = cv2.erode(mask, None, iterations=2)
+    #     mask = cv2.dilate(mask, None, iterations=2)
+    #     contours,hierachy = cv2.findContours(
+    #         mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    #     # cnts = cnts[1] if imutils.is_cv2() else cnts[0]
+    #     # print(len(cnts))
+    #     if len(contours) > 0:
+    #         self.findColorDetection = 1
 
-        mask = cv2.erode(hsv, None, iterations=2)
-        mask = cv2.dilate(mask, None, iterations=2)
-        # find contour and detect object shape
-        cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
-                                cv2.CHAIN_APPROX_SIMPLE)[-2]
-        print("0000000000000000000000000000000000000000000")
-        print(cnts)
-        print("0000000000000000000000000000000000000000000")
-        if len(cnts) > 0:
-            self.findColorDetection = 1
-            c = max(cnts, key=cv2.contourArea)
-            ((self.box_x, self.box_y), self.radius) = cv2.minEnclosingCircle(c)
-            M = cv2.moments(c)
-            self.center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
-            X = int(self.box_x)
-            Y = int(self.box_y)
-            self.error_Y = 240 - Y
-            self.error_X = 320 - X
-        else:
-            self.findColorDetection = 0
-            self.findcontainerDetection = 0
-            self.error_X = 0
-            self.error_Y = 0
-            self.center = 0
-        # self.pause()
-    # find color area based on frame
+    #         # find the max area
+    #         c = max(contours, key=cv2.contourArea)
+    #         ((self.box_x, self.box_y),
+    #          self.radius) = cv2.minEnclosingCircle(c)
+
+    #         M = cv2.moments(c)
+    #         # center coordinate
+    #         self.center = (int(M["m10"] / M["m00"]),
+    #                        int(M["m01"] / M["m00"]))
+
+    #         X, Y = self.center
+
+    #         # self.error_Y = 240 - Y
+    #         # self.error_X = 320 - X
+    #         self.error_Y = int(self.videoH/2) - Y
+    #         self.error_X = int(self.videoW/2) - X
+    #         print(X, "-----", end="=> ")
+    #         print(self.error_X)
+
+    #     else:
+    #         self.findColorDetection = 0
+    #         self.error_X = 0
+    #         self.error_Y = 0
 
     def findColor(self, frame_image):
         """find color target"""
@@ -401,7 +394,7 @@ class CVThread(threading.Thread):
             # self.findColorVer2(frame_image=frame_image)
             self.pause()
             self.resetShapeFound()
-            self.objSpacing()
+            # self.objSpacing()
             self.dcMotorMove(self.error_X)
         else:
             # when every color is found
@@ -421,10 +414,10 @@ class CVThread(threading.Thread):
         if abs(calCenter) > 100:
             if calCenter < 0:
                 # print("turn right")
-                self.motors.turnRight(100)
+                self.motors.turnRight(80)
             elif calCenter > 0:
                 # print("turn left")
-                self.motors.turnLeft(100)
+                self.motors.turnLeft(80)
         else:
             self.motors.motorStop()
         # print(calCenter)
