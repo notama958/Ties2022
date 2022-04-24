@@ -1,14 +1,15 @@
+
+import lidar_smbus
 import threading
 import time
 import board
 import sys
 import os
+# https://circuitpython.readthedocs.io/projects/lidarlite/en/latest/api.html
+
 curr_folder = os.path.dirname(os.path.realpath(__file__))
 
 sys.path.append(curr_folder)
-
-import lidar_smbus
-# https://circuitpython.readthedocs.io/projects/lidarlite/en/latest/api.html
 
 
 class Lidar(threading.Thread):
@@ -41,8 +42,7 @@ class Lidar(threading.Thread):
             try:
                 # this sometimes throw  Measurement undefined
                 self.lidar_value = self.sensor.distance
-                #print(self.get_value())
-                #print(self.get_value())
+                # print(self.get_value())
             except RuntimeError:
                 self.lidar_value = 0
 

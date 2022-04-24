@@ -35,17 +35,20 @@ class Compass(threading.Thread):
 
     def run(self):
         """"""
+        # self.__flag.wait()
         while self.read:
             """"""
+            self.__flag.wait()
             self.compass_value = self.read_compass
+            # print(self.compass_value)
 
     def pause(self):
         print('......................pause..........................')
+        # set to false
         self.__flag.clear()
-        self.read = False
 
     def resume(self):
-        print('resume')
+        print('......................resume..........................')
         self.__flag.set()
         self.read = True
 
@@ -69,6 +72,11 @@ if __name__ == "__main__":
         compass.start()
         time.sleep(3)
         compass.pause()
+        time.sleep(3)
+        compass.resume()
+        time.sleep(5)
+        compass.pause()
+
     except KeyboardInterrupt:
         compass.destroy()
         compass.join()
