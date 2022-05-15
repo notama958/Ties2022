@@ -1,5 +1,5 @@
 
-import lidar_smbus
+
 import threading
 import time
 import board
@@ -11,20 +11,14 @@ curr_folder = os.path.dirname(os.path.realpath(__file__))
 
 sys.path.append(curr_folder)
 
-
+import lidar_smbus
 class Lidar(threading.Thread):
     """Lidar control"""
-    lidar_scl = 3
-    lidar_sda = 2
 
     def __init__(self, *args, **kwargs):
-        # Create library object using our Bus I2C port
-        # gpio 2 and 3
         super(Lidar, self).__init__(*args, *kwargs)
-        # remove adafruit
-        # self.i2c = busio.I2C(self.lidar_scl, self.lidar_sda)
-        # self.sensor = adafruit_lidarlite.LIDARLite(self.i2c)
-
+        # It's automatic config I2C address by setup.py
+        # check address at sudo i2cdetect -y 3
         self.sensor = lidar_smbus.LIDARlitev3(3)
         # save lidar_value
         self.lidar_value = 0
@@ -40,7 +34,7 @@ class Lidar(threading.Thread):
             # print(self.__flag.is_set())
             self.__flag.wait()
             try:
-                # this sometimes throw  Measurement undefined
+                # update value
                 self.lidar_value = self.sensor.distance
                 # print(self.get_value())
             except RuntimeError:
@@ -52,7 +46,6 @@ class Lidar(threading.Thread):
 
     def pause(self):
         print('......................pause..........................')
-        # set to false
         self.__flag.clear()
 
     def resume(self):

@@ -26,6 +26,29 @@ hsv_threshold = {
     "v_min": 153,
     "v_max": 255
 }
+# read previous hsv file
+
+
+def read_hsv(fin):
+    try:
+        file = open("{}.txt".format(fin), "r+")
+        lines=file.readlines()
+        print(lines)
+        for line in lines:
+            hsv = line.strip().split(" ")
+            
+            if "max" in hsv[0]:
+                hsv_threshold['h_max'] = int(hsv[1])
+                hsv_threshold['s_max'] = int(hsv[2])
+                hsv_threshold['v_max'] = int(hsv[3])
+            elif "min" in hsv[0]:
+                hsv_threshold['h_min'] = int(hsv[1])
+                hsv_threshold['s_min'] = int(hsv[2])
+                hsv_threshold['v_min'] = int(hsv[3])
+        file.close()
+    except FileNotFoundError:
+        pass
+
 # save hsv file
 
 
@@ -35,8 +58,8 @@ def save_hsv(h_min, h_max, s_min, s_max, v_min, v_max):
         print("None file name input, exit and retry")
     else:
         f = open("{}.txt".format(color_file), "w+")
-        content = "h_min {}\nh_max {}\ns_min {}\ns_max {}\nv_min {}\nv_max {}".format(
-            h_min, h_max, s_min, s_max, v_min, v_max)
+        content = "max: {} {} {}\nmin: {} {} {}".format(
+            h_max, s_max,  v_max, h_min, s_min, v_min)
         f.write(content)
         f.close()
 
@@ -141,12 +164,8 @@ if __name__ == "__main__":
     if args.color != None:
         color_file = args.color
         try:
-            f = open("{}.txt".format(color_file), "r")
-            lines = f.readlines()
-            for line in lines:
-                line = line.strip().split(" ")
-                hsv_threshold[line[0]] = int(line[1])
-            f.close()
+            read_hsv(color_file)
+
         except FileNotFoundError:
             """go with init hsv value"""
             pass

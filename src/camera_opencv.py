@@ -8,30 +8,33 @@ import cv2
 from base_camera import BaseCamera
 import numpy as np
 import threading
-from vision import lidar_litev3_thread
 import time
-from voice import speaker
+# speaker
+from voice import speaker_v2
+# stack class
 from utils import stack
-from pyzbar import pyzbar
-# from stack import ColorStack
+# lidar
+from vision import lidar_litev3_thread
 # Servo
 from arm import Servos
 # Motors
 from wheels import Move
+# arduino
+from utils import arduino
 # Canny thresholds
 CANNY_T1 = 150
 CANNY_T2 = 150
 # min contour Area
-AREA = 5000
+AREA = 3000
 # red
-RED_UPPER = np.array([10, 255, 255])
-RED_LOWER = np.array([0, 50, 70])
+RED_UPPER = np.array([9, 255, 255])
+RED_LOWER = np.array([0, 48, 46])
 # green
-GREEN_UPPER = np.array([70, 255, 255])
-GREEN_LOWER = np.array([50, 100, 100])
+GREEN_UPPER = np.array([83, 255, 255])
+GREEN_LOWER = np.array([53, 71, 78])
 # blue
 BLUE_UPPER = np.array([130, 255, 255])
-BLUE_LOWER = np.array([110, 50, 50])
+BLUE_LOWER = np.array([104, 53, 32])
 # colors
 colors = ["BLUE", "GREEN", "RED"]
 BLUE = 0
@@ -47,44 +50,45 @@ font = cv2.FONT_HERSHEY_SIMPLEX
 FORE = 0
 BACK = 1
 
-# read adjustment hsv txt files
-for i in colors:
-    try:
-        """"""
-        f = open("utils/{}.txt".format(i.lower()), "r")
-        lines = f.readlines()
-        max = []
-        min = []
-        for line in lines:
-            line = line.strip().split(" ")
-            if "max" in line[0]:
-                max.append(int(line[1]))
-            elif "min" in line[0]:
-                min.append(int(line[1]))
-        if i == 'BLUE':
-            if len(min) == len(max) and len(min) == 3:
-                BLUE_LOWER = np.array(min)
-                BLUE_UPPER = np.array(max)
-        elif i == 'GREEN':
-            if len(min) == len(max) and len(min) == 3:
-                GREEN_LOWER = np.array(min)
-                GREEN_UPPER = np.array(max)
-        elif i == 'RED':
-            if len(min) == len(max) and len(min) == 3:
-                RED_LOWER = np.array(min)
-                RED_UPPER = np.array(max)
+# # read adjustment hsv txt files
+# for i in colors:
+#     try:
+#         """"""
+#         f = open("utils/{}.txt".format(i.lower()), "r")
+#         lines = f.readlines()
+#         min = None
+#         max = None
 
-    except FileNotFoundError:
-        print("not found init {} file".format(i), end=" ")
-        print("you should run utils/thresholds.py before running this file")
-        pass
+#         for line in lines:
+#             line = line.strip().split(" ")
+#             if "max" in line[0]:
+#                 max = np.array([int(line[1]), int(line[2]), int(line[3])])
+#             elif "min" in line[0]:
+#                 min = np.array([int(line[1]), int(line[2]), int(line[3])])
+
+#         if i == 'BLUE':
+#             if len(min) == len(max) and len(min) == 3:
+#                 BLUE_LOWER = min
+#                 BLUE_UPPER = max
+#         elif i == 'GREEN':
+#             if len(min) == len(max) and len(min) == 3:
+#                 GREEN_LOWER = min
+#                 GREEN_UPPER = max
+#         elif i == 'RED':
+#             if len(min) == len(max) and len(min) == 3:
+#                 RED_LOWER = min
+#                 RED_UPPER = max
+
+#     except FileNotFoundError:
+#         print("not found init {} file".format(i), end=" ")
+#         print("you should run utils/thresholds.py before running this file")
+#         pass
 
 color_dict = {
     "RED": {"HIGH": RED_UPPER, "LOW": RED_LOWER},
     "GREEN": {"HIGH": GREEN_UPPER, "LOW": GREEN_LOWER},
     "BLUE": {"HIGH": BLUE_UPPER, "LOW": BLUE_LOWER},
 }
-print(color_dict)
 # read contour.txt
 try:
     """read file if have and override standard value"""
@@ -138,8 +142,7 @@ class Camera(BaseCamera):
 
 
 class CVThread(threading.Thread):
-    # newly added
-    color_selected = GREEN  # start with the blue
+    color_selected = BLUE  # start with the blue
     color_name = ""
     container_name = ""
     center = None
@@ -157,8 +160,8 @@ class CVThread(threading.Thread):
     scGear = Servos.ServoCtrl()
     motors = Move.MotorThread()
     lidar = lidar_litev3_thread.Lidar()
-    myVoice = speaker.Speaker()
-    # end of newly added
+    myVoice = speaker_v2.Speaker()
+    ard = arduino.ArduinoControl()
     font = font
     cameraDiagonalW = 64
     cameraDiagonalH = 48
@@ -191,22 +194,31 @@ class CVThread(threading.Thread):
             "approx": None
         },
     }
+    counter = 0
+    # set this where you put your box and ball
+    box_cor = 220
+    ball_cor = 190
+    ######
+    at_box = False
+    at_ball = True
+    rot_lock = False
+    speed = 50
 
     def __init__(self, *args, **kwargs):
         self.CVThreading = 0
         self.findColorDetection = 0
-        self.findcontainerDetection = 0
-        # newly added
+        self.findContainerDetection = 0
         self.color_name = colors[self.color_selected]  # save the color name
         self.stack = stack.ColorStack()
         self.stack.push(self.color_name)
         #################
         self.scGear.start()
         self.motors.start()
+        self.motors.setCordinate(self.box_cor, self.ball_cor)
         self.lidar.start()
         self.myVoice.start()
+        self.ard.start()
         ##############
-        # end of newly added
         super(CVThread, self).__init__(*args, *kwargs)
         self.__flag = threading.Event()
         self.__flag.clear()
@@ -222,44 +234,6 @@ class CVThread(threading.Thread):
     def mode(self, imgInput):
         self.imgCV = imgInput
         self.resume()
-
-    # def findColor(self, frame_image):
-    #     """find color target"""
-    #     hsv = cv2.cvtColor(frame_image, cv2.COLOR_BGR2HSV)
-    #     mask = cv2.inRange(
-    #         hsv, color_dict.get(self.color_name).get('LOW'), color_dict.get(self.color_name).get('HIGH'))  # 1
-    #     mask = cv2.erode(mask, None, iterations=2)
-    #     mask = cv2.dilate(mask, None, iterations=2)
-    #     contours,hierachy = cv2.findContours(
-    #         mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    #     # cnts = cnts[1] if imutils.is_cv2() else cnts[0]
-    #     # print(len(cnts))
-    #     if len(contours) > 0:
-    #         self.findColorDetection = 1
-
-    #         # find the max area
-    #         c = max(contours, key=cv2.contourArea)
-    #         ((self.box_x, self.box_y),
-    #          self.radius) = cv2.minEnclosingCircle(c)
-
-    #         M = cv2.moments(c)
-    #         # center coordinate
-    #         self.center = (int(M["m10"] / M["m00"]),
-    #                        int(M["m01"] / M["m00"]))
-
-    #         X, Y = self.center
-
-    #         # self.error_Y = 240 - Y
-    #         # self.error_X = 320 - X
-    #         self.error_Y = int(self.videoH/2) - Y
-    #         self.error_X = int(self.videoW/2) - X
-    #         print(X, "-----", end="=> ")
-    #         print(self.error_X)
-
-    #     else:
-    #         self.findColorDetection = 0
-    #         self.error_X = 0
-    #         self.error_Y = 0
 
     def findColor(self, frame_image):
         """find color target"""
@@ -294,18 +268,20 @@ class CVThread(threading.Thread):
                 objCor = len(approx)
                 # # create a box around the obj
                 # x, y, w, h = cv2.boundingRect(approx)
-                print(objCor)
-                if objCor in [4, 5, 6, 7]:
+                # print(objCor)
+                if objCor in [4, 5]:
                     """square or rectangle"""
                     self.shape['box'] = True
                     self.areas['box']['area'] = area
                     self.areas['box']['approx'] = approx
+                    self.counter = 0
                     break
                 elif objCor >= 8:
 
                     self.shape['circle'] = True
                     self.areas['circle']['area'] = area
                     self.areas['circle']['approx'] = approx
+                    self.counter = 0
                     break
                 else:
                     self.shape['box'] = False
@@ -317,8 +293,8 @@ class CVThread(threading.Thread):
         # print(self.shape)
         if not self.shape.get("circle") and self.shape.get("box"):
             """find container"""
-            print("found box")
-            self.findcontainerDetection = 1
+            #print("found box")
+            self.findContainerDetection = 1
             self.findColorDetection = 0
             # create a box around the obj
             x, y, w, h = cv2.boundingRect(self.areas.get('box').get('approx'))
@@ -328,8 +304,8 @@ class CVThread(threading.Thread):
 
         elif self.shape.get("circle"):
             """pick object first"""
-            print("found circle")
-            self.findcontainerDetection = 0
+            #print("found circle")
+            self.findContainerDetection = 0
             self.findColorDetection = 1
             x, y, w, h = cv2.boundingRect(
                 self.areas.get('circle').get('approx'))
@@ -339,10 +315,11 @@ class CVThread(threading.Thread):
         else:
             """"""
             self.findColorDetection = 0
-            self.findcontainerDetection = 0
+            self.findContainerDetection = 0
             self.error_X = 0
             self.error_Y = 0
             self.center = 0
+            self.counter += 1
 
     def elementDraw(self, imgInput):
         # central X Y horizontals
@@ -351,11 +328,11 @@ class CVThread(threading.Thread):
         cv2.line(imgInput, (0, int(self.videoH/2)),
                  (self.videoW, int(self.videoH/2)), (255, 255, 255), 1)
         # not found anything
-        if self.findColorDetection == 0 and self.findcontainerDetection == 0:
+        if self.findColorDetection == 0 and self.findContainerDetection == 0:
             cv2.putText(imgInput, 'Target Detecting', (40, 60),
                         CVThread.font, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
             self.drawing = 0
-
+        # found the object
         if self.findColorDetection == 1:
             try:
                 cx, cy = self.center
@@ -368,7 +345,8 @@ class CVThread(threading.Thread):
                            4, BGR_LOW[self.color_selected], -1)
             except TypeError:
                 pass
-        if self.findcontainerDetection == 1:
+        # found the container
+        if self.findContainerDetection == 1:
             try:
                 cx, cy = self.center
                 self.drawing = 1
@@ -388,75 +366,72 @@ class CVThread(threading.Thread):
         self.shape['circle'] = False
 
     def processFrame(self, frame_image):
+        """process each frame"""
         # if there is a color in the stack
         if self.stack.peek() != -1 and not self.sorted_queue.get(self.color_name):
             self.findColor(frame_image=frame_image)
-            # self.findColorVer2(frame_image=frame_image)
             self.pause()
-            self.resetShapeFound()
-            # self.objSpacing()
+            self.objSpacing()
             self.dcMotorMove(self.error_X)
+            self.resetShapeFound()
         else:
             # when every color is found
             self.findColorDetection = 0
-            self.findcontainerDetection = 0
+            self.findContainerDetection = 0
             self.resetShapeFound()
             self.motors.motorStop()
 
-    # fix this one to use both color and text
     def dcMotorMove(self, calCenter):
         """
-            calCenter <0 => object is on the left
-            calCenter >0 => object is on the right
+            calCenter = screen's X - target's X
 
         """
         self.motors.updateE(calCenter)  # keep track of the error
         if abs(calCenter) > 100:
             if calCenter < 0:
                 # print("turn right")
-                self.motors.turnRight(80)
+                self.motors.turnRight(self.speed)
             elif calCenter > 0:
                 # print("turn left")
-                self.motors.turnLeft(80)
+                self.motors.turnLeft(self.speed)
         else:
             self.motors.motorStop()
         # print(calCenter)
 
-    # fix this one to use both color and text
     def objSpacing(self):
+        """spacing between the robot and target"""
+        if (self.lidar.get_value() > 15 and self.lidar.get_value() <= 30) and (self.findColorDetection == 1 or self.findContainerDetection == 1):
 
-        if (self.lidar.get_value() > 10 and self.lidar.get_value() <= 15) and (self.findColorDetection == 1 or self.findcontainerDetection == 1):
             self.motors.motorStop()
 
+            # print("STOP")
             self.armActions()
 
-        elif self.lidar.get_value() > 15 and (self.findColorDetection == 1 or self.findcontainerDetection == 1):
+        elif self.lidar.get_value() > 30 and (self.findColorDetection == 1 or self.findContainerDetection == 1):
             """"""
-            # print("Motors forward")
-            self.myVoice.playbackThread("forward")
-
-            self.motors.moveForward(speed=100)
-        elif self.lidar.get_value() <= 5 and (self.findColorDetection == 1 or self.findcontainerDetection == 1):
+            #print("move forward")
+            self.motors.moveForward(speed=self.speed)
+        elif self.lidar.get_value() <= 15 and (self.findColorDetection == 1 or self.findContainerDetection == 1):
             """"""
-            self.myVoice.playbackThread("back")
-            # print("Motors backward")
+            #print("move back")
 
-            self.motors.moveBackward(speed=100)
+            self.motors.moveBackward(speed=self.speed)
 
     def armActions(self):
         if self.findColorDetection == 1:
 
-            self.grabing_finished = self.scGear.grab()
+            self.grabing_finished = self.scGear.grab_v2()
             # fail? move back
             timer = 3  # 3 trials
 
             if self.grabing_finished == False:
+                self.myVoice.playbackThread(self.color_selected)
                 self.grabing_free = True
             else:
-                self.motors.moveBackward(speed=100)
+                self.motors.moveBackward(speed=self.speed)
                 while timer > 0 and not self.grabing_finished:
                     self.motors.motorStop()
-                    self.grabing_finished = self.scGear.grab()
+                    self.grabing_finished = self.scGear.grab_v2()
 
                     if self.grabing_finished:
                         self.grabing_free = False
@@ -464,27 +439,30 @@ class CVThread(threading.Thread):
                     timer -= 1
 
             ###########
-        elif self.findcontainerDetection == 1:
+        elif self.findContainerDetection == 1:
             # release  the object to container
             print("====>Releasing object to container")
 
             # return finished status
-            self.grabing_free = self.scGear.release()
+            self.grabing_free = self.scGear.release_v2()
 
             # fail? move back
             timer = 3  # 3 trials
 
             if self.grabing_free:
+                self.myVoice.playbackThread(4)
                 self.stack.pop()
-                self.sorted_queue[self.color_name] = True
-                self.motors.moveBackward(speed=100)
-
-                # self.whichColorNext() # comment for testing 1 color only
+                # self.sorted_queue[self.color_name] = True ## comment for looping
+                self.motors.moveBackward(speed=self.speed)
+                # move to take next color
+                self.motors.findBallPos(self.ball_cor, self.speed)
+                self.whichColorNext()  # comment for testing 1 color only
+                self.ard.runSolenoid()  # run the solenoid clapping performance
             else:
-                self.motors.moveBackward(speed=100)
+                self.motors.moveBackward(speed=self.speed)
                 while timer > 0 and not self.grabing_free:
                     self.motors.motorStop()
-                    self.grabing_free = self.scGear.release()
+                    self.grabing_free = self.scGear.release_v2()
                     if self.grabing_free:
                         self.grabing_finished = False
                         break
@@ -523,8 +501,15 @@ class CVThread(threading.Thread):
         while 1:
             self.__flag.wait()
             self.CVThreading = 1
-            # CVThread.dist.checkdist()
-            # self.doOpenCV(self.imgCV)
-            # print(self.grabing_free)
+
+            if self.counter > 100 and self.findContainerDetection == 0 and self.findColorDetection == 0 and not self.rot_lock:
+                self.rot_lock = True
+                self.findColorDetection = 0
+                self.findContainerDetection = 0
+                # depend on what angle it is
+                self.rot_lock = self.motors.findCordinate(speed=self.speed)
+                self.at_box = True
+                self.at_ball = False
+                self.counter = 0
             self.processFrame(self.imgCV)
             self.CVThreading = 0

@@ -1,5 +1,5 @@
 # Author: Yen Tran
-# hardware : CMPS14
+# hardware : HMC5883L gy-271
 # docs:
 import logging
 import math
@@ -9,9 +9,7 @@ import sys
 import threading
 from micropython import const
 
-
 _ADDR = const(0x60)  # compass default address
-
 
 # configuration
 _REG_CMPS_COMMAND_HIGH = const(0x02)  # config mode 1
@@ -37,15 +35,16 @@ class Compass(threading.Thread):
 
     def run(self):
         """"""
-
+        # self.__flag.wait()
         while self.read:
             """"""
             self.__flag.wait()
             self.compass_value = self.read_compass
-            # print("0000000>",self.compass_value)
+            print(self.compass_value)
 
     def pause(self):
         print('......................pause..........................')
+        # set to false
         self.__flag.clear()
 
     def resume(self):
@@ -71,12 +70,6 @@ if __name__ == "__main__":
     try:
         compass = Compass(4)
         compass.start()
-        time.sleep(3)
-        compass.pause()
-        time.sleep(3)
-        compass.resume()
-        time.sleep(5)
-        compass.pause()
 
     except KeyboardInterrupt:
         compass.destroy()

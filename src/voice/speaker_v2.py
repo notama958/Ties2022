@@ -15,6 +15,7 @@ class Speaker(threading.Thread):
         super(Speaker, self).__init__(*args, *kwargs)
         self.__flag = threading.Event()
         self.__flag.clear()
+        # pygame.mixer.init()
 
     # def __init__(self):
         # pygame.mixer.init()
@@ -24,22 +25,61 @@ class Speaker(threading.Thread):
 
     def playbackThread(self, command):
 
-        if command == "back":
-            t1 = threading.Thread(target=self.back)
-        elif command == "forward":
-            t1 = threading.Thread(target=self.forward)
-        elif command == "next":
-            t1 = threading.Thread(target=self.next)
-        elif command == "grabbed":
+        if command == 0:
+            t1 = threading.Thread(target=self.blue)
+        elif command == 1:
+            t1 = threading.Thread(target=self.green)
+        elif command == 2:
+            t1 = threading.Thread(target=self.red)
+        elif command == 3:
             t1 = threading.Thread(target=self.grabbed)
-        elif command == "released":
+        elif command == 4:
             t1 = threading.Thread(target=self.released)
-        elif command == "scored":
+        elif command == 5:
             t1 = threading.Thread(target=self.scored)
         t1.start()
 
+
+
     def killPlaybackThread(self):
         ''''''
+
+    def blue(self, file=curr_folder+"/mp3/blue.wav"):
+        self.stop()
+        try:
+            wave_obj = sa.WaveObject.from_wave_file(file)
+            play_obj = wave_obj.play()
+            play_obj.wait_done()
+            while play_obj.is_playing() == True:
+                continue
+        except Exception:
+            pass
+
+    
+    def green(self, file=curr_folder+"/mp3/green.wav"):
+        self.stop()
+        try:
+            wave_obj = sa.WaveObject.from_wave_file(file)
+            play_obj = wave_obj.play()
+            play_obj.wait_done()
+            while play_obj.is_playing() == True:
+                continue
+        except Exception:
+            pass
+
+    def red(self, file=curr_folder+"/mp3/red.wav"):
+        self.stop()
+        try:
+            wave_obj = sa.WaveObject.from_wave_file(file)
+            play_obj = wave_obj.play()
+            play_obj.wait_done()
+            while play_obj.is_playing() == True:
+                continue
+        except Exception:
+            pass
+
+
+
 
     def forward(self, file=curr_folder+"/mp3/forward.wav"):
         self.stop()
