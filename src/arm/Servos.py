@@ -1,7 +1,7 @@
 # Servos is used for ARM control
 
 
-from ServoThread import ServoThreadObject
+
 import busio
 from board import SCL, SDA
 import threading
@@ -13,8 +13,8 @@ import sys
 import os
 curr_folder = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(curr_folder)
+from ServoThread import ServoThreadObject
 # print(curr_folder)
-
 i2c = busio.I2C(SCL, SDA)
 
 
@@ -23,6 +23,8 @@ i2c = busio.I2C(SCL, SDA)
 
 pca = PCA9685(i2c)
 pca.frequency = 50
+
+# parse the config file for servos angle restriction
 
 
 def parse():
@@ -126,7 +128,10 @@ class ServoCtrl(threading.Thread):
         self.servos[ID].moveAngle(self.nowPos[ID])  # set new value to servo
 
     def grab(self):
-        """grab object in front of v2"""
+        """
+        grab object in front of v2
+        prototype
+        """
         try:
             self.moveAngle(0, 0)
             self.moveAngle(13, 10)
@@ -148,31 +153,43 @@ class ServoCtrl(threading.Thread):
         # raise('Thread failed')
     def grab_v2(self):
         try:
-            """"""
-            sc.moveAngle(11, 90)  # fix at center
-            sc.moveAngle(0, 0)  # loose finger
-            sc.moveAngle(10, 80)  # lower arm
+            """
+            11: link
+            10: arm
+            """
+
+            self.moveAngle(11, 30)  # link control
+            self.moveAngle(0, 100)  # loose tip 4
+            self.moveAngle(1, 110)  # fixed
+            time.sleep(1)
+            self.moveAngle(10, 177)  # lower arm
             # sc.moveAngle(11,100) # uncomment this only need to reach further
             time.sleep(1.5)
-            sc.moveAngle(0, 135)
+            self.moveAngle(0, 180)  # tide tip 4
             time.sleep(1.5)
             print("rise up the hand")
-            sc.moveAngle(10, 20)
-            sc.moveAngle(11, 170)
+            self.moveAngle(10, 80)
+            time.sleep(1)
+            self.moveAngle(11, 40)
+
             self.grabing_free = False
 
-        except Exception:
+        except Exception as e:
             """"""
+            print(e)
             self.grabing_free = True
 
         return self.grabing_free
 
     def release(self):
-        """release object in front of"""
+        """
+        release object in front of
+        prototype
+        """
         try:
             self.moveAngle(13, 60)
             self.moveAngle(12, 40)
-            self.moveAngle(1, 90)
+            self.moveAngle(1, 90)  # fix it
             self.moveAngle(0, self.minPos[0])
             time.sleep(3)
             self.scMode = 'init'
@@ -186,7 +203,8 @@ class ServoCtrl(threading.Thread):
         try:
             # self.moveAngle(11, 95) # move the link first
             #self.moveAngle(10, 20)
-            self.moveAngle(1, 90)
+            self.moveAngle(10, 145)
+            self.moveAngle(11, 60)
             self.moveAngle(0, self.minPos[0])
             time.sleep(3)
             self.scMode = 'init'
@@ -195,18 +213,18 @@ class ServoCtrl(threading.Thread):
             self.grabing_free = False
         return self.grabing_free
 
-    def throw(self):
-        try:
-            """throwing movement"""
-            self.moveAngle(11, 90)
-            time.sleep(0.1)
-            self.moveAngle(0, 0)
-            time.sleep(0.1)
-            self.moveAngle(11, 150)
-            time.sleep(0.5)
+    # def throw(self):
+    #     try:
+    #         """throwing movement"""
+    #         self.moveAngle(11, 90)
+    #         time.sleep(0.1)
+    #         self.moveAngle(0, 0)
+    #         time.sleep(0.1)
+    #         self.moveAngle(11, 150)
+    #         time.sleep(0.5)
 
-        except Exception:
-            """"""
+    #     except Exception:
+    #         """"""
 
     def killServoThread(self, ID):
         self.servos[ID].join()
@@ -246,17 +264,21 @@ if __name__ == "__main__":
     sc.start()
     try:
         """"""
-        sc.moveAngle(10, 20)
-        time.sleep(1)
+        sc.grab_v2()
 
-        while 1:
-            sc.moveAngle(11, 90)
-            time.sleep(0.1)
-            sc.moveAngle(0, 0)
-            time.sleep(0.1)
-            sc.moveAngle(11, 150)
-            time.sleep(0.5)
-            sc.moveAngle(0, 135)
+        # sc.release_v2()
+        # sc.moveAngle(1,110)
+        # time.sleep(5)
+        # sc.moveAngle(0,90)
+        # time.sleep(5)
+        # while 1:
+        #     sc.moveAngle(11,90)
+        #     time.sleep(0.1)
+        #     sc.moveAngle(0,0)
+        #     time.sleep(0.1)
+        #     sc.moveAngle(11,150)
+        #     time.sleep(0.5)
+        #     sc.moveAngle(0,135)
         # throw thing
 
         #sc.moveAngle(11, 180)
@@ -266,9 +288,10 @@ if __name__ == "__main__":
 
         # sc.moveAngle(13, 40)
         # while 1:
-        #     sc.grab()
-        #     time.sleep(2)
-        #     sc.release()
+        #    sc.grab()
+        #    time.sleep(2)
+        #    sc.release()
+        #    time.sleep(2)
         # arr = [None]*16
         # sc.moveAngle(13,0)
         # time.sleep(1)

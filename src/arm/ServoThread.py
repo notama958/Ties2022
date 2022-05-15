@@ -18,12 +18,11 @@ i2c = busio.I2C(SCL, SDA)
 pca = PCA9685(i2c)
 pca.frequency = 50
 
+# control 1 servo in 1 seperate thread
+
 
 class ServoThreadObject(threading.Thread):
     angle = 90  # init pos
-    maxPos = 180
-    minPos = 0
-    scDelay = 0.3
 
     def __init__(self, servoObject, *args, **kwargs):
         self.servo = servoObject
@@ -48,10 +47,9 @@ class ServoThreadObject(threading.Thread):
     def killServoThread(self):
         self.__flag.clear()
 
-    def run(self):
-        """"""
-        # while True:
-        #     """"""
+    # def run(self):
+    #     while True:
+    #         """"""
         # self.moveAngle()
 
 

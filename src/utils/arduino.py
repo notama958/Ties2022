@@ -2,7 +2,8 @@ from threading import Timer
 import serial
 import threading
 import time
-TTY = '/dev/ttyACM1'
+TTY = ['/dev/ttyACM0', '/dev/ttyACM1',
+       '/dev/ttyACM2', '/dev/ttyUSB0', '/dev/ttyUSB1']
 
 CMDS = {
     'BLUE': b'0\n',
@@ -10,7 +11,6 @@ CMDS = {
     'RED': b'2\n',
     'WHITE': b'3\n',
     'SOLENOID': b'4\n',
-    'STOP': b'5\n'
 }
 
 
@@ -42,30 +42,42 @@ class RepeatedTimer(object):
 
 class ArduinoControl(threading.Thread):
     read = True
+    ser = None
 
     def __init__(self, *args, **kwargs):
-        self.ser = serial.Serial(TTY, 9600, timeout=1)
-        self.ser.reset_input_buffer()
-        self.solenoid = RepeatedTimer(
-            1, self.runSolenoid)  # run solenoid repeatedly
+        for i in TTY:
+            try:
+                self.ser = serial.Serial(i, 9600, timeout=1)
+                self.ser.reset_input_buffer()
+                # self.solenoid = RepeatedTimer(
+                #     5, self.runSolenoid)  # run solenoid repeatedly
+                break
+            except:
+                pass
+
         super(ArduinoControl, self).__init__(*args, *kwargs)
         self.__flag = threading.Event()
-        self.__flag.set()
+        self.__flag.clear()
+        self.resume()
 
         # self.resume()
 
     def runSolenoid(self):
-        self.ser.write(CMDS.get('SOLENOID'))
+        if self.ser is not None:
+            self.ser.write(CMDS.get('SOLENOID'))
+            time.sleep(1)
+            self.ser.write(b"XXXXXX\n")
 
     def runLed(self, led):
-        if CMDS.get(led):
-            self.ser.write(CMDS.get(led))
+        if self.ser is not None:
+            if CMDS.get(led):
+                print("===========>", CMDS.get(led))
+                self.ser.write(CMDS.get(led))
 
     def readCommand(self):
-        # self.resume()
-        line = self.ser.readline().decode('utf-8').rstrip()
-        print(line)
-        time.sleep(1)
+        if self.ser is not None:
+            line = self.ser.readline()
+            print(line)
 
     def run(self):
         while self.read:
@@ -90,9 +102,22 @@ class ArduinoControl(threading.Thread):
 if __name__ == '__main__':
     slave = ArduinoControl()
     slave.start()
-    time.sleep(5)
-    slave.pause()
-    time.sleep(1)
-    slave.resume()
+    # time.sleep(5)
+    # slave.pause()
+    # time.sleep(1)
+    # slave.resume()
+    while 1:
+        time.sleep(3)
+        slave.runLed('BLUE')
+        # time.sleep(5)
+        slave.runLed('GREEN')
+        # time.sleep(5)
+        slave.runLed('RED')
+        # time.sleep(5)
+    # slave.runLed('BLUE')
+    # time.sleep(5)
+    # slave.runLed('RED')
+    # time.sleep(5)
+    # slave.runSolenoid()
 
     # slave.readCommand()

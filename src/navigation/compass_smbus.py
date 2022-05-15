@@ -1,4 +1,3 @@
-# Author: Yen Tran
 # hardware : HMC5883L gy-271
 # docs:
 import logging
